@@ -10,71 +10,42 @@ typedef unsigned char U8;
 typedef unsigned long U32;  
 
 #define Top_value U32(0XFFFFFFFF)    
-#define First_qtr U32(Top_value/4+1)  
+#define First_qtr ((Top_value>>2)+1) 
 #define Half      U32(2*First_qtr)    
 #define Third_qtr U32(3*First_qtr)    
 
 int EOS = 0; 
-U32 rc,rc1,rc2,rc3,r1,r2,r3,r4,ubi,xmid,cobit,filesize;
+U32 rc0,rc,rc1,rc2,rc3,r1,r2,r3,r4,ubi,xmid,cobit;
 unsigned short buf[16777216];
 
   unsigned char cbuf[65793];
   int cxt,bcxt;  
   unsigned short ct[65793][256][2];  
   unsigned short bct[65536][256][2];
+  
+  
+  unsigned long filesize,pos,control,i,lbit,posix,limbuf;
+
+
+  
   int p() {
     return 4096*(ct[rc][cxt][1]+1) / (ct[rc][cxt][0]+ct[rc][cxt][1]+2);
   }
 
   void update(int y) {
-    if (++ct[rc][cxt][y] > 254)
+    if (++ct[rc][cxt][y] > 248)
     {
-      ct[rc][cxt][0] >>= 1;
-      ct[rc][cxt][1] >>= 1;
+      ct[rc][cxt][0] >>= 1;       ct[rc][cxt][0] +=15;
+      ct[rc][cxt][1] >>= 1;       ct[rc][cxt][1] +=15;
     }
 
-    if (rc!=0)
+    if (ct[rc0][cxt][0]==0 && ct[rc0][cxt][1]==0) 
     {
-    if (++ct[rc2][cxt][y] > 65534)
-    {
-      ct[rc2][cxt][0] >>= 1;
-      ct[rc2][cxt][1] >>= 1;
+	   if (ct[rc1][cxt][0]>0 || ct[rc1][cxt][1]>0 )
+       {
+		ct[rc0][cxt][1]<<=1;
+       }
     }
-    }
-
-    if (rc!=rc1)
-    {
-    if (++ct[rc2][cxt][y] > 65534)
-    {
-      ct[rc2][cxt][0] >>= 1;
-      ct[rc2][cxt][1] >>= 1;
-    }
-    }
-
-    if (rc!=rc2)
-    {
-    if (++ct[rc2][cxt][y] > 65534)
-    {
-      ct[rc2][cxt][0] >>= 1;
-      ct[rc2][cxt][1] >>= 1;
-    }
-    }
-
-
-    if ((cxt+=cxt+y) > 255)
-      cxt=1;
-  }
-  int bp() {
-    return 4096*(bct[rc3][bcxt][1]+1)/ (bct[rc3][bcxt][0]+bct[rc3][bcxt][1]+2);
-  }
-
-  void bupdate(int y) {
-    if (++bct[rc3][bcxt][y] > 65534) {
-      bct[rc3][bcxt][0] >>= 1;
-      bct[rc3][bcxt][1] >>= 1;
-    }
-    if ((bcxt+=bcxt+y) > 255)
-      bcxt=1;
   }
 
 
@@ -141,8 +112,6 @@ inline void Encoder::encode(int y) {
 
   if (ubi==0)
   xmid = x1 + ((x2-x1) >> 12) * p();
-  else
-  xmid = x1 + ((x2-x1) >> 12) * bp();
   assert(xmid >= x1 && xmid < x2);
   if (y)
     x2=xmid;
@@ -150,8 +119,6 @@ inline void Encoder::encode(int y) {
     x1=xmid+1;
   if (ubi==0)
   update(y);
-  else
-  bupdate(y);
 
   cobit--;
   if (cobit==0) cobit=8;
@@ -177,8 +144,6 @@ inline int Encoder::decode() {
 
   if (ubi==0)
   xmid = x1 + ((x2-x1) >> 12) * p();
-  else
-  xmid = x1 + ((x2-x1) >> 12) * bp();
   assert(xmid >= x1 && xmid < x2);
   int y=0;
   if (x<=xmid) {
@@ -189,8 +154,6 @@ inline int Encoder::decode() {
     x1=xmid+1;
   if (ubi==0)
   update(y);
-  else
-  bupdate(y);
 
   for (;;) {
       if ( x2 < Half ) {
@@ -220,8 +183,6 @@ inline int Encoder::decode() {
 void Encoder::flush() {
     if (ubi==0)
   xmid = x1 + ((x2-x1) >> 12) * p();
-  else
-  xmid = x1 + ((x2-x1) >> 12) * bp();
   assert(xmid >= x1 && xmid < x2);
   if ( xmid < Half )
     x2=xmid;
