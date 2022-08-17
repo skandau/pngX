@@ -22,12 +22,8 @@ unsigned short buf[16777216];
   int cxt,bcxt;  
   unsigned short ct[65793][256][2];  
   unsigned short bct[65536][256][2];
-  
-  
+ 
   unsigned long filesize,pos,control,i,lbit,posix,limbuf;
-
-
-  
   int p() {
     return 4096*(ct[rc][cxt][1]+1) / (ct[rc][cxt][0]+ct[rc][cxt][1]+2);
   }
@@ -258,8 +254,15 @@ int main(int argc, char** argv) {
       for (int i=7; i>=0; --i)
       e.encode((c>>i)&1); 
       }
+        r1=c;
+        rc1=1+r1;
+        if (cbuf[rc1]>0) 
+        rc=rc1;
+        else
+        cbuf[rc1]=1;
+        
+		   
     }
-
     e.flush();
   }
 
@@ -289,7 +292,15 @@ int main(int argc, char** argv) {
       {
       putc(buf[r3+(r2<<8)+(r1<<16)]-1, out);
       c=(buf[r3+(r2<<8)+(r1<<16)]-1)+256;
-      }
+      
+	  }
+        r1=c-256;
+        rc1=1+r1;
+        if (cbuf[rc1]>0)
+        rc=rc1;
+        else
+        cbuf[rc1]=1;
+
         filesize--;
     }
   }
